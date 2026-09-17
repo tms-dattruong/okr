@@ -1,0 +1,43 @@
+# redmine:
+#   url: https://redmine.tomosia.com.vn
+#   ticket_key_prefix: MGC
+#   user:                     # unknown — bot API key belongs to shared bot-mgc account, not a personal login; assignee check skipped
+#   in_progress_mode: comment  # user opted to skip status transitions; comment-only signal
+#   review_status_id:          # user chose "skip status change" — just post summary comment with PR link, no status transition
+
+# git:
+#   branch_format: "feature/{ticket_key}"   # repo history uses feature/{author}/{ticket_key}; author segment optional, confirm per-run if needed
+
+# commit:
+#   format: "feat({ticket_key}): {subject}"   # observed pattern in git log; swap feat-> fix/hotfix as appropriate to change type
+#   max_subject_length: 50
+
+# conventions:
+#   notes: >
+#     Flask admin (server-rendered Jinja2), layered architecture: services -> repositories -> db_models (no Clean Architecture).
+#     DB: use `with get_db() as db:` in service layer, never SessionLocal() directly; pass db into repository constructor.
+#     BaseRepository owns commit/rollback/refresh; call its add()/delete(), never db.commit()/rollback() outside BaseRepository.
+#     Auth is global via before_request + restricted_routes/skip_paths in app/__init__.py — every new route MUST be added to one or the other (silent gap otherwise).
+#     Role checks via AdminRole enum, no raw ints. IDOR: filter company-owned resources by company_id.
+#     Blueprints: <feature>_bp var, url prefix /admin/<feature>, register in app/__init__.py + add to restricted_routes.
+#     Repositories: db/repositories/<feature>/<entity>_repository.py, inherit BaseRepository, no request/flash/redirect inside.
+#     Validation: utils/check/<feature>_check.py, is_*/check_* naming, return {"is_valid": bool, "message": str}, called before DB ops.
+#     Templates: no SQL/business logic in Jinja2, autoescape on, no |safe on user content.
+#     Errors: catch in service view functions, log_error (never log JWT/cookie/passwords), flash safe Japanese message, no stack traces to user.
+#     Full detail in repo's own CLAUDE.md.
+
+# tests:
+#   framework: pytest
+#   run_command: docker exec -it h-ad-flask-1 pytest /app/tests/ -v
+#   coverage_target:            # unstated in repo docs — ask if it comes up
+
+# database_safety:
+#   shared_dev_db: false
+#   notes: docker-compose spins up an isolated local MySQL per dev machine — no special caution beyond running tests with the test env/container.
+
+# pr:
+#   method: gh pr create
+#   include_redmine_link: true
+
+# dev_server:
+#   default_url: http://localhost:7200   # h-ad-nginx-1 (see CLAUDE.md Containers & Ports table); Flask app itself on 7201

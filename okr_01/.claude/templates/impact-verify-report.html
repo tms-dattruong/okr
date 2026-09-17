@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><MODEL> — Báo cáo verify</title>
+<!-- Language: follow .claude/config/report-writing-style.md — all prose in clear, non-mixed Vietnamese; keep only the identifiers listed there as-is. -->
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --border: #d8dee6;
+    --text: #1b2330;
+    --muted: #5c6b7a;
+    --resolved: #0d8f5a;
+    --resolved-bg: #e6f5ee;
+    --pending: #c62828;
+    --pending-bg: #fdecea;
+    --notfound: #5c6b7a;
+    --notfound-bg: #eef2f6;
+    --new: #1565c0;
+    --new-bg: #e8f1fb;
+    --accent: #0f766e;
+    --accent-bg: #e6f4f1;
+    --code-bg: #eef2f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151a;
+      --surface: #1a1f27;
+      --border: #2c3440;
+      --text: #e8edf4;
+      --muted: #9aa8b8;
+      --resolved: #5eead4;
+      --resolved-bg: #14302c;
+      --pending: #ff8a80;
+      --pending-bg: #3a1c1c;
+      --notfound: #9aa8b8;
+      --notfound-bg: #232a34;
+      --new: #82b1ff;
+      --new-bg: #1a273a;
+      --accent: #5eead4;
+      --accent-bg: #14302c;
+      --code-bg: #232a34;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.55 "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 28px 18px 72px; }
+  header.hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 22px 18px;
+    margin-bottom: 22px;
+  }
+  header.hero h1 {
+    margin: 0 0 8px;
+    font-size: 1.55rem;
+    letter-spacing: -0.02em;
+  }
+  .meta {
+    color: var(--muted);
+    font-size: 0.92rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+  .meta code { font-size: 0.88em; }
+  .counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+  }
+  .pill.resolved { background: var(--resolved-bg); color: var(--resolved); }
+  .pill.pending { background: var(--pending-bg); color: var(--pending); }
+  .pill.notfound { background: var(--notfound-bg); color: var(--notfound); }
+  .pill.new { background: var(--new-bg); color: var(--new); }
+  h2 {
+    font-size: 1.15rem;
+    margin: 28px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 1rem; margin: 18px 0 8px; }
+  h4 {
+    font-size: 0.78rem;
+    margin: 16px 0 8px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  code, .mono {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-size: 0.9em;
+  }
+  code {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 0 0 12px;
+  }
+  ul.plain { margin: 4px 0; padding-left: 1.2em; }
+  ul.plain li { margin: 4px 0; }
+  .badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 4px;
+    padding: 2px 7px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .badge-resolved { background: var(--resolved-bg); color: var(--resolved); }
+  .badge-pending { background: var(--pending-bg); color: var(--pending); }
+  .badge-notfound { background: var(--notfound-bg); color: var(--notfound); }
+  .badge-new { background: var(--new-bg); color: var(--new); }
+  .item {
+    border-left: 4px solid var(--border);
+    background: var(--bg);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 12px;
+    margin: 0 0 10px;
+  }
+  .item.resolved { border-left-color: var(--resolved); }
+  .item.pending { border-left-color: var(--pending); }
+  .item.notfound { border-left-color: var(--notfound); }
+  .item.new { border-left-color: var(--new); }
+  .item .path { font-weight: 600; word-break: break-all; }
+  .item .layer { color: var(--muted); font-size: 0.82em; margin-left: 6px; }
+  .item .evidence,
+  .item .old-ref,
+  .item .action,
+  .item .note { margin: 6px 0 0; font-size: 0.93em; }
+  .item .evidence b,
+  .item .old-ref b,
+  .item .action b,
+  .item .note b { color: var(--muted); font-weight: 600; }
+  .notes { color: var(--muted); font-size: 0.92em; }
+  .empty { color: var(--muted); font-style: italic; font-size: 0.9em; }
+  nav.toc {
+    background: var(--accent-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 20px;
+    font-size: 0.9em;
+  }
+  nav.toc a { color: var(--accent); text-decoration: none; margin-right: 14px; }
+  nav.toc a:hover { text-decoration: underline; }
+  @media print {
+    body { background: #fff; color: #000; }
+    .wrap { max-width: none; padding: 0; }
+    .item, .card, header.hero { break-inside: avoid; }
+    nav.toc { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1><MODEL> — Báo cáo verify</h1>
+  <div class="meta">
+    <span>Migration: <code>&lt;MIGRATION&gt;</code></span>
+    <span>Baseline: <code>&lt;BASELINE_REPORT_PATH&gt;</code></span>
+    <span>Verified at: <code>&lt;DATE&gt;</code></span>
+  </div>
+  <!-- Fill from summary; omit a pill when count is 0 (except Resolved — always show N/TOTAL) -->
+  <div class="counts">
+    <span class="pill resolved">Resolved: &lt;N&gt; / &lt;TOTAL&gt;</span>
+    <span class="pill pending">Still pending: &lt;P&gt;</span>
+    <span class="pill notfound">Not found: &lt;F&gt;</span>
+    <span class="pill new">New findings: &lt;K&gt;</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <a href="#source">Nguồn</a>
+  <a href="#summary">Tóm tắt</a>
+  <a href="#resolved">Resolved</a>
+  <a href="#pending">Still pending</a>
+  <a href="#notfound">Not found</a>
+  <a href="#new">New findings</a>
+  <a href="#notes">Ghi chú</a>
+</nav>
+
+<h2 id="source">Nguồn</h2>
+<div class="card">
+  <ul class="plain">
+    <li>Model: <code>&lt;MODEL&gt;</code></li>
+    <li>Migration: <code>&lt;MIGRATION&gt;</code></li>
+    <li>Baseline report: <code>&lt;BASELINE_REPORT_PATH&gt;</code></li>
+    <li>Verified at: <code>&lt;DATE&gt;</code></li>
+  </ul>
+</div>
+
+<h2 id="summary">Tóm tắt</h2>
+<div class="card">
+  <ul class="plain">
+    <li>Resolved: <code>&lt;N&gt;</code> / <code>&lt;TOTAL&gt;</code></li>
+    <li>Still pending: <code>&lt;P&gt;</code></li>
+    <li>Not found: <code>&lt;F&gt;</code></li>
+    <li>New findings: <code>&lt;K&gt;</code></li>
+  </ul>
+</div>
+
+<h2 id="resolved"><span class="badge badge-resolved">Resolved</span></h2>
+<!-- Omit whole section body if none; keep heading + empty note optional -->
+<div class="item resolved">
+  <span class="path mono">&lt;FILE_PATH&gt;</span>
+  <p class="evidence"><b>evidence:</b> &lt;WHAT_CHANGED_OR_OLD_REF_GONE_VI&gt;</p>
+</div>
+
+<h2 id="pending"><span class="badge badge-pending">Still pending</span></h2>
+<div class="item pending">
+  <span class="path mono">&lt;FILE_PATH&gt;</span>
+  <p class="old-ref"><b>old ref found:</b> <code>&lt;FIELD_OR_PATTERN&gt;</code></p>
+  <p class="action"><b>suggested action:</b> &lt;WHAT_TO_FIX_VI&gt;</p>
+</div>
+
+<h2 id="notfound"><span class="badge badge-notfound">Not found</span></h2>
+<div class="item notfound">
+  <span class="path mono">&lt;FILE_PATH&gt;</span>
+  <p class="note"><b>note:</b> &lt;FILE_DELETED_OR_PATH_CHANGED_VI&gt;</p>
+</div>
+
+<!-- Omit entire #new block if K == 0 -->
+<h2 id="new"><span class="badge badge-new">New findings</span></h2>
+<div class="item new">
+  <span class="path mono">&lt;FILE_PATH&gt;</span>
+  <span class="layer">[layer: &lt;LAYER&gt;]</span>
+  <p class="old-ref"><b>old ref / pattern:</b> <code>&lt;TERM&gt;</code></p>
+  <p class="action"><b>suggested action:</b> &lt;WHAT_TO_CHECK_OR_FIX_VI&gt;</p>
+</div>
+
+<h2 id="notes">Ghi chú</h2>
+<div class="card notes">
+  <ul class="plain">
+    <li>&lt;NOTE_1_VI&gt;</li>
+  </ul>
+</div>
+
+</div>
+</body>
+</html>

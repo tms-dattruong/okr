@@ -1,0 +1,16 @@
+---
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+    - repo: local
+      hooks:
+
+          - id: ai-commit-gate
+            name: AI Commit Quality Gate
+            # DEMO/TIMEOUT/CACHE: .claude/ai-commit-gate.env (AI_GATE_DEMO=0 blocks on critical only).
+            entry: bash .claude/scripts/ai_commit_gate.sh
+            language: system
+            pass_filenames: false
+            # Chạy khi stage .py dưới src/ hoặc Jinja template admin.
+            files: ^(src/.*\.py$|src/app/templates/.*\.html$)
+            verbose: true
